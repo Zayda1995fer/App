@@ -1,40 +1,43 @@
 import {
+  Body,
   Controller,
-  Get,
-  Post,
-  Put,
   Delete,
   Param,
-  Body,
+  ParseIntPipe,
+  Post,
+  Put,
 } from '@nestjs/common';
+import { Get } from '@nestjs/common';
 import { TaskService } from './task.service';
+import { last } from 'rxjs';
+import { parse } from 'path';
 
-@Controller('task')
+@Controller('api/task')
 export class TaskController {
-  constructor(private readonly taskService: TaskService) {}
+  constructor(private taskSvc: TaskService) {}
 
   @Get()
-  getTasks() {
-    return this.taskService.getTasks();
+  public getTasks(): any {
+    return this.taskSvc.getTask();
   }
-
   @Get(':id')
-  getTaskById(@Param('id') id: number) {
-    return this.taskService.getTasksById(Number(id));
+  public getTasksById(@Param('id', ParseIntPipe) id: number): any {
+    console.log(typeof id);
+    return this.taskSvc.getTaskById(id);
   }
 
   @Post()
-  insertTask(@Body() task: any) {
-    return this.taskService.insert(task);
+  public insertTask(@Body() task: any): string {
+    return this.taskSvc.insert(task);
   }
 
-  @Put(':id')
-  updateTask(@Param('id') id: number, @Body() task: any) {
-    return this.taskService.update(Number(id), task);
+  @Put('/:id')
+  public updateTask(@Param('id') id: string, @Body() task: any) {
+    return this.taskSvc.update(parseInt(id), task);
   }
 
   @Delete(':id')
-  deleteTask(@Param('id') id: number) {
-    return this.taskService.delete(Number(id));
+  public deleteTask(@Param('id') id: string) {
+    return this.taskSvc.delete(parseInt(id));
   }
 }
