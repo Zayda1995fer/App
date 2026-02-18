@@ -11,6 +11,7 @@ import { Get } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { last } from 'rxjs';
 import { parse } from 'path';
+import { CreateTaskDto } from './dto/create-task.dto';
 
 @Controller('api/task')
 export class TaskController {
@@ -27,17 +28,17 @@ export class TaskController {
   }
 
   @Post()
-  public insertTask(@Body() task: any): string {
+  public insertTask(@Body() task: CreateTaskDto): any {
     return this.taskSvc.insert(task);
   }
 
   @Put('/:id')
-  public updateTask(@Param('id') id: string, @Body() task: any) {
-    return this.taskSvc.update(parseInt(id), task);
+  public updateTask(@Param('id', ParseIntPipe) id: number, @Body() task: any) {
+    return this.taskSvc.update(id, task);
   }
 
   @Delete(':id')
-  public deleteTask(@Param('id') id: string) {
-    return this.taskSvc.delete(parseInt(id));
+  public deleteTask(@Param('id', ParseIntPipe) id: number) {
+    return this.taskSvc.delete(id);
   }
 }
