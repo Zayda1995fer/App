@@ -1,12 +1,30 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateTaskDto {
-  @IsNotEmpty()
-  name: string;
 
+  @IsString( {message: 'Nombre es requerido' })
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(100)
+  name: string;
+ 
+
+  @IsString( {message: 'Nombre es requerido' })
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(250)
   @IsNotEmpty()
   description: string;
 
+  @IsBoolean()
   @IsNotEmpty()
   priority: number;
+
+
+
+  @IsNumber()
+@IsInt() 
+  user_id: number;
+
+
 }

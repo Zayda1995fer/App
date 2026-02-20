@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
-import { TaskController } from './modules/task/task.controller';
-import { TaskService } from './modules/task/task.service';
+import { TaskController } from './modules/task/interface/task.controller';
+import { TaskService } from './modules/task/interface/task.service';
 
 describe('Controllers', () => {
   let authController: AuthController;
