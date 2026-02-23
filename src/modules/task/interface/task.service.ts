@@ -11,9 +11,9 @@ export class TaskService {
 
   private tasks: any[] = [];
 
-  public getTasks(): Promise<any> {
+  public async getTasks(): Promise<any> {
     const query = 'SELECT * FROM tasks';
-    const [result]: any = this.db.query(query);
+    const [result]: any = await this.db.query(query);
 
     return result;
   }
@@ -23,15 +23,16 @@ export class TaskService {
     return `Tarea con el id: ${id}`;
   }
 
-  public insert(task: CreateTaskDto): any {
-    var id = this.tasks.length + 1;
-    var insertedTask = this.tasks.push({
-      ...task,
-      id,
-    });
-    
-    return this.tasks[insertedTask - 1];
-  }
+  public async insert(task: CreateTaskDto): Promise<any> {
+  const query = 'INSERT INTO tasks (name, description, priority, user_id) VALUES (?, ?, ?, ?)';
+  const [result]: any = await this.db.execute(query, [
+    task.name,
+    task.description,
+    task.priority,
+    task.user_id
+  ]);
+  return result;
+}
 
   public update(id: number, task: any) {
     const taskUpdate = this.tasks.map(t => {

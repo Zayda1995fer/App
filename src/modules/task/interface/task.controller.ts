@@ -18,8 +18,8 @@ export class TaskController {
   }
 
   @Post()
-  public insertTask(@Body() task: CreateTaskDto): string {
-    return this.taskSvc.insert(task);
+  public async insertTask(@Body() task: CreateTaskDto): Promise<any> {
+    return await this.taskSvc.insert(task);
   }
 
   @Put("/:id")
@@ -28,7 +28,7 @@ export class TaskController {
   }
 
   @Delete(":id")
-  public deleteTask(@Param(":id") id: string) {
+  public deleteTask(@Param("id") id: string) {
     return this.taskSvc.delete(parseInt(id));
   }
 }
