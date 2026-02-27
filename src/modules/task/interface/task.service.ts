@@ -1,58 +1,70 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTaskDto } from '../dto/create-task.dto';
+import { Task } from '../entities/task.entity';
+import { UpdateTaskDto } from '../dto/update.task.dto';
 
 @Injectable()
 export class TaskService {
 
-    constructor(@Inject('PG_CONNECTION') private db: any) { }
+  constructor(@Inject('PG_CONNECTION') private db: any) { }
 
-    private tasks: any[] = [];
+  private tasks: any[] = [];
 
-    async getTasks() {
-        const query = 'SELECT * FROM tasks';
-        const result = await this.db.query(query);
-        return result.rows;
+  async getTasks() {
+    const query = 'SELECT * FROM tasks';
+    const result = await this.db.query(query);
+    return result.rows;
+  }
+
+  async getTaskById(id: number): Promise<Task> {
+    const query = 'SELECT * FROM tasks WHERE id = $1';
+    const result = await this.db.query(query, [id]);
+
+    if (result == undefined) {
+      throw new NotFoundException(`Tarea con ID ${id} no encontrada`);
     }
 
-    async getTaskById(id: number): Promise<any> {
-        const query = 'SELECT * FROM tasks WHERE id = $1';
-        const result = await this.db.query(query, [id]);
-        return result.rows[0];
-    }
-    async insertTasks(task: CreateTaskDto): Promise<any> {
-        const sql = `INSERT INTO tasks (name, description, priority, user_id) VALUES ('${task.name}', '${task.description}', '${task.priority}', ${task.user_id}) RETURNING id`;
-        const result = await this.db.query(sql);
-        const insertId = result.insertId;
-        const row = await this.getTaskById(insertId);
-        return row;
-    }
+    return result.rows[0];
+  }
 
-    async updateTask(id: number, taskUpdate: any): Promise<any> {
-       const task = await this.getTaskById(id);
+  async insertTask(task: CreateTaskDto): Promise<Task> {
+    //Agregar el query
+    const sql = `INSERT INTO tasks (name, description, priority, user_id) VALUES ('${task.name}', '${task.description}', ${task.priority}, ${task.user_id}) RETURNING *`;
+    const result = await this.db.query(sql);
 
-       task.name = taskUpdate.name ?? task.name;
-        task.description = taskUpdate.description ?? task.description;
-        task.priority = taskUpdate.priority ?? task.priority;
+    const insertid = result.rows[0].id;
 
-        // Convertir el objeto a un SET
-        //const sets = Object.keys(taskUpdate)
-        //.map(key => `${key} = '${taskUpdate[key]}'`).join(', ');
-        //const query = `UPDATE tasks SET ${sets} WHERE id = ${id}`;
-        //await this.db.query(query);
-        //return await this.getTaskById(id);
-       
-    }
+    const row = await this.getTaskById(insertid);
+    return row;
+  }
 
-    deleteTask(id: number): string {
-        const array = this.getTasks();
-        const initialLength = this.tasks.length;
+  async updateTask(id: number, taskUpdate: UpdateTaskDto): Promise<Task> {
+    const task = await this.getTaskById(id);
 
-        this.tasks = this.tasks.filter(task => task.id !== id);
+    task.name = taskUpdate.name ? taskUpdate.name : task.name;
+    task.description = taskUpdate.description ? taskUpdate.description : task.description;
+    task.priority = taskUpdate.priority !== undefined ? taskUpdate.priority : task.priority;
 
-        if (this.tasks.length < initialLength) {
-            return "Tarea eliminada correctamente";
-        } else {
-            return "Tarea no encontrada";
-        }
-    }
+    const query = `
+    UPDATE tasks 
+    SET name = '${task.name}', 
+    description = '${task.description}', 
+    priority = ${task.priority} 
+    WHERE id = ${id} RETURNING *`;
+
+    const result = await this.db.query(query);
+  
+    return result.rows[0];
+
+
+
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    const query = `DELETE FROM tasks WHERE id=${id}`;
+
+    const result = await this.db.query(query);
+
+    return result.rowCount > 0;
+  }
 }

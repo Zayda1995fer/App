@@ -2,7 +2,7 @@ import { userInfo } from "os"
 import { Client } from "pg";
 
 export const pgProvider = [{
-    provide: 'POSTGRES_CONNECTION',
+    provide: 'PG_CONNECTION',
     useFactory: () => {
         const client = new Client({
             host: 'localhost',

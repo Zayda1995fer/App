@@ -1,45 +1,54 @@
-import { Body, Controller, Delete, Get, HttpException, HttpStatus, NotFoundException, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, NotFoundException, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { CreateTaskDto } from '../dto/create-task.dto';
+import { Task } from '../entities/task.entity';
+import { UpdateTaskDto } from '../dto/update.task.dto';
+import { ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 
 @Controller('api/task')
+@ApiTags('Task', 'Tareas')
 export class TaskController {
   constructor(private readonly taskSvc: TaskService) { }
 
   @Get()
-  public async getTask(): Promise<any> {
+  public async getTask(): Promise<Task[]> {
     return await this.taskSvc.getTasks();
   }
 
   @Get(':id')
-  public async getTaskById(@Param("id", ParseIntPipe) id: number): Promise<any> {
-    const result = await this.taskSvc.getTaskById(id);
-    console.log("resultado",result);
-  
-    if(result == undefined){
-        //throw new NotFoundException(`Tarea con ID ${id} no encontrada`);
-        throw new HttpException(`Tarea con ID ${id} no encontrada`, HttpStatus.NOT_FOUND);   
+  @HttpCode(200)
+  public async getTaskById(@Param("id", ParseIntPipe) id: number): Promise<Task> {
+    const task = await this.taskSvc.getTaskById(id);
+    console.log("Resultado:", task);
+
+    if (task == undefined) {
+      throw new HttpException(`Tarea con ID ${id} no encontrada`, HttpStatus.NOT_FOUND);
     }
-    return result;
+    return await this.taskSvc.getTaskById(id);
   }
 
   @Post()
-  public insertTask(@Body() task: CreateTaskDto) {
-    const result = this.taskSvc.insertTasks(task);
+  @ApiOperation({ summary: 'Crear una nueva tarea' })
+  public async insertTask(@Body() task: CreateTaskDto): Promise<Task> {
+    const result = await this.taskSvc.insertTask(task)
 
     if (result == undefined)
-        throw new HttpException("Tarea no registrada", HttpStatus.INTERNAL_SERVER_ERROR); 
-      
+      throw new HttpException("Tarea no registrada", HttpStatus.INTERNAL_SERVER_ERROR)
     return result;
   }
 
   @Put(":id")
-  public updateTask(@Param("id", ParseIntPipe) id: number,@Body() task: any) {
-    return this.taskSvc.updateTask(id, task);
+  public async updateTask(@Param("id", ParseIntPipe) id: number, @Body() task: UpdateTaskDto): Promise<Task> {
+    return await this.taskSvc.updateTask(id, task);
   }
 
   @Delete(':id')
-  public deleteTask(@Param("id", ParseIntPipe) id: number) {
-    return this.taskSvc.deleteTask(id);
+  public async deleteTask(@Param("id", ParseIntPipe) id: number): Promise<boolean> {
+    const result = await this.taskSvc.deleteTask(id);
+
+    if (!result) 
+      throw new HttpException("No se pudo eliminar la tarea", HttpStatus.NOT_FOUND);
+    
+    return result;
   }
 }
