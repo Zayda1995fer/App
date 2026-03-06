@@ -1,70 +1,65 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../../prisma.service';
 import { CreateTaskDto } from '../dto/create-task.dto';
-import { Task } from '../entities/task.entity';
 import { UpdateTaskDto } from '../dto/update.task.dto';
+import { Task } from 'src/generated/prisma/client';
 
 @Injectable()
 export class TaskService {
+  constructor(private prisma: PrismaService) {}
 
-  constructor(@Inject('PG_CONNECTION') private db: any) { }
-
-  private tasks: any[] = [];
-
-  async getTasks() {
-    const query = 'SELECT * FROM tasks';
-    const result = await this.db.query(query);
-    return result.rows;
+  async getTasks(): Promise<Task[]> {
+    return await this.prisma.task.findMany();
   }
 
   async getTaskById(id: number): Promise<Task> {
-    const query = 'SELECT * FROM tasks WHERE id = $1';
-    const result = await this.db.query(query, [id]);
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+    });
 
-    if (result == undefined) {
+    if (!task) {
       throw new NotFoundException(`Tarea con ID ${id} no encontrada`);
     }
 
-    return result.rows[0];
+    return task;
   }
 
-  async insertTask(task: CreateTaskDto): Promise<Task> {
-    //Agregar el query
-    const sql = `INSERT INTO tasks (name, description, priority, user_id) VALUES ('${task.name}', '${task.description}', ${task.priority}, ${task.user_id}) RETURNING *`;
-    const result = await this.db.query(sql);
+  async insertTask(dto: CreateTaskDto): Promise<Task> {
+    const task = await this.prisma.task.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        priority: dto.priority,
+        userId: dto.user_id,
+      },
+    });
 
-    const insertid = result.rows[0].id;
-
-    const row = await this.getTaskById(insertid);
-    return row;
+    return task;
   }
 
-  async updateTask(id: number, taskUpdate: UpdateTaskDto): Promise<Task> {
-    const task = await this.getTaskById(id);
+  async updateTask(id: number, dto: UpdateTaskDto): Promise<Task> {
+    const task = await this.prisma.task.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        description: dto.description,
+        priority: dto.priority,
+        userId: dto.user_id,
+      },
+    });
 
-    task.name = taskUpdate.name ? taskUpdate.name : task.name;
-    task.description = taskUpdate.description ? taskUpdate.description : task.description;
-    task.priority = taskUpdate.priority !== undefined ? taskUpdate.priority : task.priority;
-
-    const query = `
-    UPDATE tasks 
-    SET name = '${task.name}', 
-    description = '${task.description}', 
-    priority = ${task.priority} 
-    WHERE id = ${id} RETURNING *`;
-
-    const result = await this.db.query(query);
-  
-    return result.rows[0];
-
-
-
+    return task;
   }
 
   async deleteTask(id: number): Promise<boolean> {
-    const query = `DELETE FROM tasks WHERE id=${id}`;
+    try {
+      await this.prisma.task.delete({
+        where: { id },
+      });
 
-    const result = await this.db.query(query);
-
-    return result.rowCount > 0;
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

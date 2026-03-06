@@ -22,7 +22,7 @@ export class CreateTaskDto {
   @IsBoolean()
   @IsNotEmpty()
   @ApiProperty({ description: 'Ejemplo 3', example: true })
-  priority: number;
+  priority: boolean;
 
 
 

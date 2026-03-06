@@ -10,7 +10,6 @@ import {
 } from "class-validator";
 
 export class UpdateTaskDto {
-
     @IsString({ message: "El nombre debe ser un texto" })
     @IsOptional()
     @MinLength(3, { message: "El nombre debe tener al menos 3 caracteres" })
@@ -27,4 +26,8 @@ export class UpdateTaskDto {
     @IsBoolean({ message: "El estado debe ser un valor booleano" })
     priority: boolean | undefined;
 
+    @IsOptional()
+    @IsNumber()
+    @IsInt()
+    user_id: number | undefined;
 }

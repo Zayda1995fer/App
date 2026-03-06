@@ -44,7 +44,10 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+
+
 ## Run tests
+
 
 ```bash
 # unit tests
@@ -92,6 +95,10 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 - Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
 - Website - [https://nestjs.com](https://nestjs.com/)
 - Twitter - [@nestframework](https://twitter.com/nestframework)
+
+
+## Uso del pirma
+cuando se modifica el archivo << schema>> prisma se puede ejecutar 
 
 ## License
 

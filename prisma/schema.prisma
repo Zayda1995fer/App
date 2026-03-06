@@ -1,0 +1,27 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id       Int     @id @default(autoincrement()) @db.SmallInt
+  name     String  @db.VarChar(150)
+  lastname String? @db.VarChar(400)
+  tasks    Task[]
+}
+
+model Task {
+  id          Int      @id @default(autoincrement()) @db.SmallInt
+  name        String   @db.VarChar(100)
+  description String   @db.VarChar(250)
+  priority    Boolean?
+  userId      Int      @db.SmallInt @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("tasks")
+}
