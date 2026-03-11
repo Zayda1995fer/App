@@ -1,12 +1,15 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
-import { AuthService } from './modules/auth/auth.service';
+// import { AuthService } from './modules/auth/auth.service';
 import { TaskModule } from './modules/task/interface/task.module';
+import { UsersModule } from './modules/users/users.module';
+
 
 @Module({
   imports: [
     AuthModule,
-    TaskModule
+    TaskModule,
+    UsersModule
 
   ],
  

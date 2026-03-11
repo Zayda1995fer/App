@@ -3,6 +3,7 @@ import { PrismaService } from '../../../prisma.service';
 import { CreateTaskDto } from '../dto/create-task.dto';
 import { UpdateTaskDto } from '../dto/update.task.dto';
 import { Task } from 'src/generated/prisma/client';
+import { User } from 'src/generated/prisma/client';
 
 @Injectable()
 export class TaskService {
@@ -61,5 +62,17 @@ export class TaskService {
     } catch {
       return false;
     }
+  }
+
+  async getUserById(id: number): Promise<User> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    return user;
   }
 }
