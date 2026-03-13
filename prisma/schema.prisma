@@ -9,10 +9,18 @@ datasource db {
 }
 
 model User {
-  id       Int     @id @default(autoincrement()) @db.SmallInt
-  name     String  @db.VarChar(150)
-  lastname String? @db.VarChar(400)
-  tasks    Task[]
+  id           Int      @id @default(autoincrement()) @db.SmallInt
+  name         String   @db.VarChar(150)
+  lastname     String?  @db.VarChar(400)
+
+  email        String   @unique @db.VarChar(200)
+  password     String   @db.VarChar(255)
+
+  refreshToken String?  @db.VarChar(500)
+
+  createdAt    DateTime @default(now())
+
+  tasks        Task[]
 }
 
 model Task {

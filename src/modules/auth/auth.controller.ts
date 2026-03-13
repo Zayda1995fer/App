@@ -1,18 +1,20 @@
 import { Controller, Get, Post, Delete, Put, Param, Body, ParseIntPipe, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import * as userInterface from './interfaces/user.interface';
-import { Request } from 'express';
+import express from 'express';
 
 @Controller('auth')
 export class AuthController {
 
   constructor(private authSvc: AuthService) {}
 
+  // 👥 OBTENER TODOS LOS USUARIOS
   @Get()
   public async getUsers(): Promise<userInterface.IUser[]> {
     return await this.authSvc.getUsers();
   }
 
+  // 👤 OBTENER USUARIO POR ID
   @Get(':id')
   public async getUserById(
     @Param('id', ParseIntPipe) id: number
@@ -20,6 +22,7 @@ export class AuthController {
     return await this.authSvc.getUserById(id);
   }
 
+  // ➕ REGISTRAR USUARIO
   @Post('register')
   public async createUser(
     @Body() user: userInterface.IUser
@@ -27,6 +30,7 @@ export class AuthController {
     return await this.authSvc.createUser(user);
   }
 
+  // ✏ ACTUALIZAR USUARIO
   @Put(':id')
   public async updateUser(
     @Param('id', ParseIntPipe) id: number,
@@ -35,6 +39,7 @@ export class AuthController {
     return await this.authSvc.updateUser(id, user);
   }
 
+  // ❌ ELIMINAR USUARIO
   @Delete(':id')
   public async deleteUser(
     @Param('id', ParseIntPipe) id: number
@@ -52,7 +57,9 @@ export class AuthController {
 
   // 👤 OBTENER PERFIL
   @Get('profile')
-  public async getProfile(@Req() req: Request): Promise<any> {
+  public async getProfile(
+    @Req() req: express.Request
+  ): Promise<any> {
     return await this.authSvc.getProfile(req);
   }
 
