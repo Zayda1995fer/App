@@ -4,8 +4,6 @@ import { IUser } from './interfaces/user.interface';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
-import { ParamsDictionary } from 'express-serve-static-core';
-import { ParsedQs } from 'qs';
 
 @Injectable()
 export class AuthService {
@@ -16,9 +14,7 @@ export class AuthService {
   ) {}
 
   // 👤 GET PROFILE
-  public async getProfile(
-    req: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>
-  ): Promise<any> {
+  public async getProfile(req: Request): Promise<any> {
 
     const authHeader = req.headers.authorization;
 
@@ -27,7 +23,6 @@ export class AuthService {
     }
 
     const token = authHeader.split(' ')[1];
-
     const payload = this.jwtService.verify(token);
 
     const user = await this.prisma.user.findUnique({
@@ -43,7 +38,6 @@ export class AuthService {
       email: user.email,
       createdAt: user.createdAt
     };
-
   }
 
   // 🔐 LOGIN
@@ -53,84 +47,77 @@ export class AuthService {
       where: { email }
     });
 
-    // 404 si no existe
     if (!user) {
       throw new NotFoundException('User does not exist');
     }
 
-    // validar password
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
       throw new UnauthorizedException('Invalid password');
     }
 
-    // access token (60s)
     const accessToken = this.jwtService.sign(
-      {
-        id: user.id,
-        email: user.email
-      },
+      { id: user.id, email: user.email },
       { expiresIn: '60s' }
     );
 
-    // refresh token (7 días)
     const refreshToken = this.jwtService.sign(
-      {
-        id: user.id
-      },
+      { id: user.id },
       { expiresIn: '7d' }
     );
 
-    // guardar refresh token
+    // 🔐 Guardar token encriptado (mejor práctica)
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
-        refreshToken: refreshToken
+        refreshToken: hashedRefreshToken
       }
     });
 
     return {
       id: user.id,
       email: user.email,
-      createdAt: user.createdAt,
       accessToken,
       refreshToken
     };
-
   }
 
   // 🔄 REFRESH TOKEN
-  public async refreshToken(refreshToken: string): Promise<any> {
+  public async refreshToken(token: string): Promise<any> {
 
-    const payload = this.jwtService.verify(refreshToken);
+    const payload = this.jwtService.verify(token);
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.id }
     });
 
-    if (!user || user.refreshToken !== refreshToken) {
+    if (!user || !user.refreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const isValid = await bcrypt.compare(token, user.refreshToken);
+
+    if (!isValid) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
     const newAccessToken = this.jwtService.sign(
-      {
-        id: user.id,
-        email: user.email
-      },
+      { id: user.id, email: user.email },
       { expiresIn: '60s' }
     );
 
     return {
       accessToken: newAccessToken
     };
-
   }
 
   // 🚪 LOGOUT
-  public async logout(refreshToken: string): Promise<boolean> {
+  public async logout(token: string): Promise<boolean> {
 
-    const payload = this.jwtService.verify(refreshToken);
+    const payload = this.jwtService.verify(token);
 
     await this.prisma.user.update({
       where: { id: payload.id },
@@ -140,7 +127,6 @@ export class AuthService {
     });
 
     return true;
-
   }
 
   // 👥 GET USERS
@@ -155,27 +141,27 @@ export class AuthService {
     });
   }
 
-  // ➕ CREATE USER
+  // ➕ CREATE USER (REGISTER)
   public async createUser(user: IUser): Promise<IUser> {
 
-    const existUser = await this.prisma.user.findFirst({
-      where: {
-        name: user.name,
-        lastname: user.lastname
-      }
+    const existUser = await this.prisma.user.findUnique({
+      where: { email: user.email }
     });
 
     if (existUser) {
       throw new Error('User already exists');
     }
 
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+
     return await this.prisma.user.create({
       data: {
         name: user.name,
-        lastname: user.lastname
+        lastname: user.lastname,
+        email: user.email,
+        password: hashedPassword
       }
     });
-
   }
 
   // ✏ UPDATE USER
@@ -188,32 +174,19 @@ export class AuthService {
         lastname: user.lastname
       }
     });
-
   }
 
   // ❌ DELETE USER
   public async deleteUser(id: number): Promise<boolean> {
 
     try {
-
-      const tasks = await this.prisma.task.findMany({
-        where: { id: id }
-      });
-
-      if (tasks.length > 0) {
-        throw new Error();
-      }
-
       await this.prisma.user.delete({
         where: { id }
       });
 
       return true;
-
     } catch {
       return false;
     }
-
   }
-
 }
