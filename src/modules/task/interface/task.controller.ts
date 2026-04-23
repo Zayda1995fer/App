@@ -5,6 +5,8 @@ import { Task } from '../entities/task.entity';
 import { UpdateTaskDto } from '../dto/update.task.dto';
 import { ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 
+//+controller de tareas
+
 @Controller('api/task')
 @ApiTags('Task', 'Tareas')
 export class TaskController {
