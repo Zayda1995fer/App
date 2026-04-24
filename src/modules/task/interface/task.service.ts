@@ -1,80 +1,114 @@
-//service de task
-
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable, NotFoundException, ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
-import { CreateTaskDto } from '../dto/create-task.dto';
-import { UpdateTaskDto } from '../dto/update.task.dto';
-import { Task } from '../entities/task.entity';
-import { User } from '../entities/user.entity';
+import { CreateTaskDto }  from '../dto/create-task.dto';
+import { UpdateTaskDto }  from '../dto/update.task.dto';
+import { AuditService, AuditAction, AuditSeverity } from '../../audit/audit.service';
 
+/**
+ * TaskService con aislamiento de recursos.
+ * Un usuario solo puede ver, actualizar y eliminar SUS PROPIAS tareas.
+ * Usa Prisma (ORM) para consultas parametrizadas — prevención de SQL Injection.
+ */
 @Injectable()
 export class TaskService {
-  constructor(private prisma: PrismaService) {}
 
-  async getTasks(): Promise<Task[]> {
-    return await this.prisma.task.findMany();
+  constructor(
+    private prisma:   PrismaService,
+    private auditSvc: AuditService,
+  ) {}
+
+  // ─────────────────────────────────────────────────────────
+  // Obtener tareas — ADMIN ve todas, USER solo las suyas
+  // ─────────────────────────────────────────────────────────
+  async getTasks(requesterId: number, requesterRole: string): Promise<any[]> {
+    const where = requesterRole === 'admin' ? {} : { userId: requesterId };
+    return await this.prisma.task.findMany({ where, orderBy: { id: 'desc' } });
   }
 
-  async getTaskById(id: number): Promise<Task> {
-    const task = await this.prisma.task.findUnique({
-      where: { id },
-    });
+  // ─────────────────────────────────────────────────────────
+  // Obtener tarea por ID — verificar propiedad
+  // ─────────────────────────────────────────────────────────
+  async getTaskById(id: number, requesterId: number, requesterRole: string): Promise<any> {
+    const task = await this.prisma.task.findUnique({ where: { id } });
 
-    if (!task) {
-      throw new NotFoundException(`Tarea con ID ${id} no encontrada`);
+    if (!task) throw new NotFoundException(`Tarea con ID ${id} no encontrada.`);
+
+    // Aislamiento: usuario solo puede ver sus tareas
+    if (requesterRole !== 'admin' && task.userId !== requesterId) {
+      throw new ForbiddenException('No tienes acceso a esta tarea.');
     }
 
     return task;
   }
 
-  async insertTask(dto: CreateTaskDto): Promise<Task> {
+  // ─────────────────────────────────────────────────────────
+  // Crear tarea — con auditoría
+  // ─────────────────────────────────────────────────────────
+  async insertTask(dto: CreateTaskDto, requesterId: number): Promise<any> {
     const task = await this.prisma.task.create({
       data: {
-        name: dto.name,
-        description: dto.description,
-        priority: dto.priority,
-        userId: dto.user_id,
+        name:        dto.name.trim(),
+        description: dto.description.trim(),
+        priority:    dto.priority,
+        userId:      requesterId || dto.user_id, // siempre asignar al usuario autenticado
       },
     });
+
+    await this.auditSvc.log(requesterId, AuditAction.TASK_CREATED, AuditSeverity.INFO,
+      `Tarea creada: "${task.name}" (ID: ${task.id})`);
 
     return task;
   }
 
-  async updateTask(id: number, dto: UpdateTaskDto): Promise<Task> {
-    const task = await this.prisma.task.update({
+  // ─────────────────────────────────────────────────────────
+  // Actualizar tarea — verificar propiedad (IDOR prevention)
+  // ─────────────────────────────────────────────────────────
+  async updateTask(
+    id: number, dto: UpdateTaskDto,
+    requesterId: number, requesterRole: string,
+  ): Promise<any> {
+    const task = await this.prisma.task.findUnique({ where: { id } });
+    if (!task) throw new NotFoundException(`Tarea con ID ${id} no encontrada.`);
+
+    // Solo el dueño o un admin puede actualizar
+    if (requesterRole !== 'admin' && task.userId !== requesterId) {
+      throw new ForbiddenException('No puedes modificar una tarea que no es tuya.');
+    }
+
+    const updated = await this.prisma.task.update({
       where: { id },
-      data: {
-        name: dto.name,
-        description: dto.description,
-        priority: dto.priority,
-        userId: dto.user_id,
+      data:  {
+        name:        dto.name?.trim(),
+        description: dto.description?.trim(),
+        priority:    dto.priority,
       },
     });
 
-    return task;
+    await this.auditSvc.log(requesterId, AuditAction.TASK_UPDATED, AuditSeverity.INFO,
+      `Tarea actualizada: "${updated.name}" (ID: ${id})`);
+
+    return updated;
   }
 
-  async deleteTask(id: number): Promise<boolean> {
-    try {
-      await this.prisma.task.delete({
-        where: { id },
-      });
+  // ─────────────────────────────────────────────────────────
+  // Eliminar tarea — verificar propiedad
+  // ─────────────────────────────────────────────────────────
+  async deleteTask(id: number, requesterId: number, requesterRole: string): Promise<boolean> {
+    const task = await this.prisma.task.findUnique({ where: { id } });
+    if (!task) throw new NotFoundException(`Tarea con ID ${id} no encontrada.`);
 
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async getUserById(id: number): Promise<User> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    if (requesterRole !== 'admin' && task.userId !== requesterId) {
+      throw new ForbiddenException('No puedes eliminar una tarea que no es tuya.');
     }
 
-    return user;
+    await this.prisma.task.delete({ where: { id } });
+
+    await this.auditSvc.log(requesterId, AuditAction.TASK_DELETED, AuditSeverity.WARNING,
+      `Tarea eliminada: "${task.name}" (ID: ${id})`);
+
+    return true;
   }
+
 }

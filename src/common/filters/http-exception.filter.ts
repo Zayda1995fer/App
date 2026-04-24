@@ -1,25 +1,21 @@
 import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-  Logger,
+  ExceptionFilter, Catch, ArgumentsHost,
+  HttpException, HttpStatus, Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
 /**
  * Filtro global de excepciones.
- * - No expone stack traces ni errores técnicos al usuario final.
- * - Registra errores internamente con el Logger de NestJS.
- * - Devuelve mensajes amigables y consistentes al cliente.
+ * - No expone stack traces ni errores técnicos al usuario final
+ * - Registra errores internamente con el Logger de NestJS
+ * - Devuelve mensajes amigables y consistentes
  */
 @Catch()
-export class AllExceptionFilter implements ExceptionFilter {
+export class HttpExceptionFilter implements ExceptionFilter {
 
-  private readonly logger = new Logger(AllExceptionFilter.name);
+  private readonly logger = new Logger(HttpExceptionFilter.name);
 
-  catch(exception: unknown, host: ArgumentsHost): void {
+  catch(exception: unknown, host: ArgumentsHost) {
     const ctx      = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request  = ctx.getRequest<Request>();
@@ -35,23 +31,23 @@ export class AllExceptionFilter implements ExceptionFilter {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
         const res = exceptionResponse as any;
-        // class-validator devuelve un array de mensajes
+        // class-validator devuelve array de mensajes
         if (Array.isArray(res.message)) {
-          message = res.message[0];
+          message = res.message[0]; // primer error de validación
         } else {
           message = res.message || message;
         }
       }
     }
 
-    // Log interno — el stack trace NUNCA se envía al cliente
+    // Log interno — NO se envía al cliente
     this.logger.error(
       `[${request.method}] ${request.url} — ${status}: ${
         exception instanceof Error ? exception.message : String(exception)
       }`
     );
 
-    // Respuesta limpia al cliente
+    // Respuesta limpia al cliente — sin stack trace
     response.status(status).json({
       statusCode: status,
       message,

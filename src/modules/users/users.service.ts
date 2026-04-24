@@ -1,61 +1,51 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { User } from '../task/entities/user.entity';
-import { PrismaService } from '../../prisma.service';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/prisma.service';
+import { IUser } from '../auth/interfaces/user.interface';
 
 @Injectable()
 export class UsersService {
+
   constructor(private prisma: PrismaService) {}
 
-  async getUsers(): Promise<User[]> {
+  async getUsers(): Promise<any[]> {
     return await this.prisma.user.findMany();
   }
 
-  async getUserById(id: number): Promise<User> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
+  async getUserById(id: number): Promise<any> {
+    return await this.prisma.user.findUnique({
+      where: { id }
     });
-
-    if (!user) {
-      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
-    }
-
-    return user;
   }
 
-  async createUser(data: {
-    name: string;
-    lastname: string;
-    email: string;
-    password: string;
-  }): Promise<User> {
+  async createUser(user: IUser): Promise<any> {
     return await this.prisma.user.create({
-      data,
+      data: {
+        name:     user.name,
+        lastname: user.lastname,
+        email:    user.email,
+        password: user.password,
+      }
     });
   }
 
-  async updateUser(
-    id: number,
-    data: {
-      name?: string;
-      lastname?: string;
-      email?: string;
-      password?: string;
-    },
-  ): Promise<User> {
+  async updateUser(id: number, user: IUser): Promise<any> {
     return await this.prisma.user.update({
       where: { id },
-      data,
-    });
+      data: {
+        name:     user.name,
+        lastname: user.lastname,
+      }
+    })
+    return user;
   }
 
   async deleteUser(id: number): Promise<boolean> {
     try {
-      await this.prisma.user.delete({
-        where: { id },
-      });
+      await this.prisma.user.delete({ where: { id } });
       return true;
     } catch {
       return false;
     }
   }
+
 }

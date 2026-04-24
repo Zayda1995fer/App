@@ -1,33 +1,53 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
-    IsBoolean,
-    IsInt,
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsString,
-    MaxLength,
-    MinLength
-} from "class-validator";
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
+/**
+ * DTO para actualización de tareas.
+ * Todos los campos son opcionales — solo se actualiza lo que se envía.
+ */
 export class UpdateTaskDto {
-    @IsString({ message: "El nombre debe ser un texto" })
-    @IsOptional()
-    @MinLength(3, { message: "El nombre debe tener al menos 3 caracteres" })
-    @MaxLength(50, { message: "El nombre no debe exceder los 50 caracteres" })
-    name: string | undefined;
 
-    @IsString({ message: "La descripción debe ser un texto" })
-    @IsOptional()
-    @MinLength(3, { message: "La descripción debe tener al menos 3 caracteres" })
-    @MaxLength(250, { message: "La descripción no debe exceder los 250 caracteres" })
-    description: string | undefined;
+  @ApiProperty({ example: 'Tarea editada', description: 'Nuevo nombre' })
+  @IsOptional()
+  @IsString({ message: 'El nombre debe ser texto.' })
+  @IsNotEmpty({ message: 'El nombre no puede estar vacío.' })
+  @MinLength(4, { message: 'El nombre debe tener mínimo 4 caracteres.' })
+  @MaxLength(20, { message: 'El nombre debe tener máximo 20 caracteres.' })
+  @Matches(/^[a-zA-Z0-9áéíóúÁÉÍÓÚüÜñÑ]+(\s[a-zA-Z0-9áéíóúÁÉÍÓÚüÜñÑ]+)*$/, {
+    message: 'El nombre solo puede contener letras y números. Sin espacios al inicio/fin ni caracteres especiales.',
+  })
+  name?: string;
 
-    @IsOptional()
-    @IsBoolean({ message: "El estado debe ser un valor booleano" })
-    priority: boolean | undefined;
+  @ApiProperty({ example: 'Nueva descripcion', description: 'Nueva descripción' })
+  @IsOptional()
+  @IsString({ message: 'La descripción debe ser texto.' })
+  @IsNotEmpty({ message: 'La descripción no puede estar vacía.' })
+  @MinLength(4, { message: 'La descripción debe tener mínimo 4 caracteres.' })
+  @MaxLength(100, { message: 'La descripción debe tener máximo 100 caracteres.' })
+  @Matches(/^[a-zA-Z0-9áéíóúÁÉÍÓÚüÜñÑ\s.,;:¿?¡!-]+$/, {
+    message: 'La descripción contiene caracteres no permitidos.',
+  })
+  description?: string;
 
-    @IsOptional()
-    @IsNumber()
-    @IsInt()
-    user_id: number | undefined;
+  @ApiProperty({ example: false, description: 'Nueva prioridad' })
+  @IsOptional()
+  @IsBoolean({ message: 'La prioridad debe ser verdadero o falso.' })
+  priority?: boolean;
+
+  @ApiProperty({ example: 1, description: 'ID del usuario' })
+  @IsOptional()
+  @IsNumber({}, { message: 'El ID de usuario debe ser un número.' })
+  @IsInt({ message: 'El ID de usuario debe ser un número entero.' })
+  user_id?: number;
+
 }

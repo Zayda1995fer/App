@@ -1,57 +1,72 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, NotFoundException, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
-import { TaskService } from './task.service';
-import { CreateTaskDto } from '../dto/create-task.dto';
-import { Task } from '../entities/task.entity';
+import {
+  Body, Controller, Delete, Get, HttpException,
+  HttpStatus, Param, ParseIntPipe, Post, Put, Req, UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { TaskService }    from './task.service';
+import { CreateTaskDto }  from '../dto/create-task.dto';
 import { UpdateTaskDto } from '../dto/update.task.dto';
-import { ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 
-//+controller de tareas
-
+@ApiTags('Tasks')
+@ApiBearerAuth()
 @Controller('api/task')
-@ApiTags('Task', 'Tareas')
 export class TaskController {
-  constructor(private readonly taskSvc: TaskService) { }
+
+  constructor(private readonly taskSvc: TaskService) {}
+
+  // Helper para extraer usuario del JWT del request
+  private getRequester(req: Request): { id: number; role: string } {
+    const user = (req as any).user;
+    return { id: user?.id || 0, role: user?.role || 'user' };
+  }
 
   @Get()
-  public async getTask(): Promise<Task[]> {
-    return await this.taskSvc.getTasks();
+  @ApiOperation({ summary: 'Obtener tareas del usuario autenticado' })
+  async getTask(@Req() req: Request) {
+    const { id, role } = this.getRequester(req);
+    return await this.taskSvc.getTasks(id, role);
   }
 
   @Get(':id')
-  @HttpCode(200)
-  public async getTaskById(@Param("id", ParseIntPipe) id: number): Promise<Task> {
-    const task = await this.taskSvc.getTaskById(id);
-    console.log("Resultado:", task);
-
-    if (task == undefined) {
-      throw new HttpException(`Tarea con ID ${id} no encontrada`, HttpStatus.NOT_FOUND);
-    }
-    return await this.taskSvc.getTaskById(id);
+  async getTaskById(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
+    const { id: requesterId, role } = this.getRequester(req);
+    return await this.taskSvc.getTaskById(id, requesterId, role);
   }
 
   @Post()
   @ApiOperation({ summary: 'Crear una nueva tarea' })
-  public async insertTask(@Body() task: CreateTaskDto): Promise<Task> {
-    const result = await this.taskSvc.insertTask(task)
-
-    if (result == undefined)
-      throw new HttpException("Tarea no registrada", HttpStatus.INTERNAL_SERVER_ERROR)
+  async insertTask(
+    @Body() task: CreateTaskDto,
+    @Req() req: Request,
+  ) {
+    const { id: requesterId } = this.getRequester(req);
+    const result = await this.taskSvc.insertTask(task, requesterId);
+    if (!result)
+      throw new HttpException('Tarea no registrada', HttpStatus.INTERNAL_SERVER_ERROR);
     return result;
   }
 
-  @Put(":id")
-  public async updateTask(@Param("id", ParseIntPipe) id: number, @Body() task: UpdateTaskDto): Promise<Task> {
-    return await this.taskSvc.updateTask(id, task);
+  @Put(':id')
+  async updateTask(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() task: UpdateTaskDto,
+    @Req() req: Request,
+  ) {
+    const { id: requesterId, role } = this.getRequester(req);
+    return await this.taskSvc.updateTask(id, task, requesterId, role);
   }
 
   @Delete(':id')
-  public async deleteTask(@Param("id", ParseIntPipe) id: number,@Body() body: any
-  ): Promise<boolean> {
-    try {
-      const result = await this.taskSvc.deleteTask(id);
-      return result;
-    } catch (error) {
-      throw error;
-    }
+  async deleteTask(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
+    const { id: requesterId, role } = this.getRequester(req);
+    return await this.taskSvc.deleteTask(id, requesterId, role);
   }
+
 }

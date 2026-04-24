@@ -1,28 +1,27 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
+// ── Modelo de Usuario ────────────────────────────────────────
 model User {
-  id           Int      @id @default(autoincrement()) @db.SmallInt
-  name         String   @db.VarChar(150)
-  lastname     String?  @db.VarChar(400)
-
-  email        String   @unique @db.VarChar(200)
-  password     String   @db.VarChar(255)
-
-  refreshToken String?  @db.VarChar(500)
-
-  createdAt    DateTime @default(now())
-
+  id           Int        @id @default(autoincrement()) @db.SmallInt
+  name         String     @db.VarChar(150)
+  lastname     String?    @db.VarChar(400)
+  email        String     @unique @db.VarChar(200)
+  password     String     @db.VarChar(255)
+  role         String     @default("user") @db.VarChar(20)
+  refreshToken String?    @db.VarChar(500)
+  createdAt    DateTime   @default(now())
   tasks        Task[]
+  auditLogs    AuditLog[]
 }
 
+// ── Modelo de Tarea ──────────────────────────────────────────
 model Task {
   id          Int      @id @default(autoincrement()) @db.SmallInt
   name        String   @db.VarChar(100)
@@ -32,4 +31,18 @@ model Task {
   user        User     @relation(fields: [userId], references: [id])
 
   @@map("tasks")
+}
+
+// ── Modelo de Log de Auditoría ───────────────────────────────
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @db.SmallInt
+  action    String   @db.VarChar(50)
+  severity  String   @db.VarChar(20)
+  details   String   @db.VarChar(500)
+  ip        String   @db.VarChar(50)
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
 }

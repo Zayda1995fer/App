@@ -1,9 +1,9 @@
-export class User {
-  id: number;
-  name: string;
-  lastname: string | null;
-  email: string;
-  password: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+/*export class User {
+  id:           number;
+  name:         string;
+  lastname:     string;
+  email:        string;
+  password:     string;
+  refreshToken: string;
+  createdAt:    Date;
+}*/
