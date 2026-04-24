@@ -14,6 +14,7 @@ import {
 /**
  * DTO para actualización de tareas.
  * Todos los campos son opcionales — solo se actualiza lo que se envía.
+ * No permite espacios en blanco ni caracteres peligrosos.
  */
 export class UpdateTaskDto {
 

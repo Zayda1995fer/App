@@ -1,10 +1,14 @@
-// src/modules/auth/dto/create-user.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail, IsNotEmpty, IsString,
   Matches, MaxLength, MinLength,
 } from 'class-validator';
 
+/**
+ * DTO registro de usuario.
+ * Contraseña segura: mínimo 8 chars, mayúscula, número y especial.
+ * Sin espacios en blanco al inicio/fin en nombre y apellido.
+ */
 export class CreateUserDto {
 
   @ApiProperty({ example: 'Zayda' })
@@ -38,8 +42,9 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'La contraseña no puede estar vacía.' })
   @MinLength(8, { message: 'La contraseña debe tener mínimo 8 caracteres.' })
   @MaxLength(20, { message: 'La contraseña debe tener máximo 20 caracteres.' })
-  @Matches(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).*$/, {
-    message: 'La contraseña debe tener al menos una mayúscula, un número y un carácter especial.',
+  // Validación de fortaleza: mayúscula + número + carácter especial
+  @Matches(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?]).*$/, {
+    message: 'La contraseña debe tener al menos una mayúscula, un número y un carácter especial (!@#$%...).',
   })
   password!: string;
 

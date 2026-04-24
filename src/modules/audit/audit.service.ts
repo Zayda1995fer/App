@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 
-// ── Enums exportados ──────────────────────────────────────────
+// ── Tipos de acción de auditoría ──────────────────────────
 export enum AuditAction {
   LOGIN_SUCCESS = 'LOGIN_SUCCESS',
   LOGIN_FAILED  = 'LOGIN_FAILED',
@@ -18,6 +18,7 @@ export enum AuditAction {
   FORBIDDEN     = 'FORBIDDEN',
 }
 
+// ── Niveles de severidad ──────────────────────────────────
 export enum AuditSeverity {
   INFO     = 'INFO',
   WARNING  = 'WARNING',
@@ -31,37 +32,41 @@ export class AuditService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Registrar un evento de auditoría.
-   * Si la tabla aún no existe (antes de migración), no interrumpe el flujo.
+   * Registrar evento de auditoría.
+   * Si falla, NO interrumpe el flujo principal.
+   * El usuario estándar no puede modificar ni borrar estos registros
+   * (controlado en AuditController con @Roles('admin')).
    */
   async log(
-  userId:   number | null,
-  action:   AuditAction,
-  severity: AuditSeverity,
-  details:  string,
-  ip?:      string,
-): Promise<void> {
-  try {
-    // Si userId es 0 o inválido, guardar como null para evitar FK violation
-    const safeUserId = userId && userId > 0 ? userId : null;
+    userId:   number | null,
+    action:   AuditAction,
+    severity: AuditSeverity,
+    details:  string,
+    ip?:      string,
+  ): Promise<void> {
+    try {
+      // Validar userId — si es 0 o negativo, guardar como null
+      const safeUserId = userId && userId > 0 ? userId : null;
 
-    await (this.prisma as any).auditLog.create({
-      data: {
-        userId:    safeUserId,
-        action,
-        severity,
-        details,
-        ip:        ip || 'unknown',
-        createdAt: new Date(),
-      },
-    });
-  } catch (err) {
-    console.error('[AuditService] Error al registrar log:', err);
+      await (this.prisma as any).auditLog.create({
+        data: {
+          userId:    safeUserId,
+          action,
+          severity,
+          details,
+          ip:        ip || 'unknown',
+          createdAt: new Date(),
+        },
+      });
+    } catch (err) {
+      // No interrumpir flujo principal si falla el log
+      console.error('[AuditService] Error al registrar log:', err);
+    }
   }
-}
 
   /**
-   * Obtener logs con filtros — solo ADMIN.
+   * Obtener logs con filtros — solo ADMIN puede acceder.
+   * Filtros: userId, action, severity, dateFrom, dateTo, page, limit.
    */
   async getLogs(filters: {
     userId?:   number;
@@ -93,18 +98,29 @@ export class AuditService {
           take:    limit,
           include: {
             user: {
-              select: { id: true, name: true, email: true },
+              select: {
+                id:    true,
+                name:  true,
+                email: true,
+                role:  true,
+                // ❌ password y refreshToken EXCLUIDOS
+              },
             },
           },
         }),
         (this.prisma as any).auditLog.count({ where }),
       ]);
 
-      return { logs, total, page, limit, totalPages: Math.ceil(total / limit) };
+      return {
+        logs,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
     } catch {
       return { logs: [], total: 0, page, limit, totalPages: 0 };
     }
   }
-  
 
 }

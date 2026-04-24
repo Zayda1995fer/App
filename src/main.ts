@@ -1,24 +1,27 @@
 import 'dotenv/config';
-import { NestFactory }        from '@nestjs/core';
-import { AppModule }          from './app.module';
-import { ValidationPipe }     from '@nestjs/common';
+import { NestFactory }    from '@nestjs/core';
+import { AppModule }      from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AllExceptionFilter } from './common/filters/Htpp-emigration.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // ── Filtro global — no expone stack traces al cliente ────
+  app.useGlobalFilters(new AllExceptionFilter());
+
+  // ── Validaciones globales con DTOs ───────────────────────
   app.useGlobalPipes(new ValidationPipe({
-    whitelist:            true,
-    forbidNonWhitelisted: false,
+    whitelist:            true,   // descarta campos no declarados en el DTO
+    forbidNonWhitelisted: false,  // ignora silenciosamente en lugar de lanzar error
     transform:            true,
     transformOptions: {
       enableImplicitConversion: true,
     },
   }));
 
-  app.useGlobalFilters(new AllExceptionFilter());
-
+  // ── CORS ────────────────────────────────────────────────
   app.enableCors({
     origin: [
       'http://localhost:5173',
@@ -29,9 +32,10 @@ async function bootstrap() {
     credentials:    true,
   });
 
+  // ── Swagger ──────────────────────────────────────────────
   const config = new DocumentBuilder()
     .setTitle('ZFVV API')
-    .setDescription('API para la gestión de tareas')
+    .setDescription('API segura para gestión de tareas')
     .setVersion('1.0.0')
     .addBearerAuth()
     .addServer('http://localhost:3000', 'Servidor local')

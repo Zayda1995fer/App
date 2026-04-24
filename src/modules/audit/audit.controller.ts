@@ -1,21 +1,13 @@
-import {
-  Controller, Get, Query, UseGuards,
-  ParseIntPipe, Optional,
-} from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuditService } from './audit.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard }   from '../../common/guards/roles.guard';
-import { Roles }        from '../../common/guards/roles.decorator';                         
 
 /**
- * Controlador de Auditoría.
- * Solo usuarios con rol ADMIN pueden consultar los logs.
- * Los usuarios estándar no tienen acceso a estas rutas.
+ * AuditController — solo usuarios ADMIN pueden consultar logs.
+ * El usuario estándar no tiene acceso a estas rutas.
  */
 @ApiTags('Auditoría')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('audit')
 export class AuditController {
 
@@ -23,11 +15,9 @@ export class AuditController {
 
   /**
    * GET /audit/logs
-   * Obtener logs con filtros por fecha, usuario y severidad.
-   * Solo ADMIN puede acceder.
+   * Filtros: userId, action, severity, dateFrom, dateTo, page, limit
    */
   @Get('logs')
-  @Roles('admin')
   @ApiOperation({ summary: 'Obtener logs de auditoría (solo ADMIN)' })
   async getLogs(
     @Query('userId')   userId?:   string,

@@ -1,10 +1,14 @@
-// src/modules/auth/dto/update-user.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty, IsOptional, IsString,
   Matches, MaxLength, MinLength,
 } from 'class-validator';
 
+/**
+ * DTO actualización de usuario.
+ * Solo permite cambiar name y lastname.
+ * email y password NO están declarados — whitelist:true los descarta.
+ */
 export class UpdateUserDto {
 
   @ApiProperty({ example: 'Zayda' })
@@ -29,6 +33,7 @@ export class UpdateUserDto {
   })
   lastname?: string;
 
-  // ❌ email y password NO se incluyen — no se pueden modificar
+  // ❌ email NO incluido — no se puede modificar
+  // ❌ password NO incluido — no se puede modificar
 
 }
